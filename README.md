@@ -13,6 +13,11 @@ PM> Install-Package Autofac.AspNetCore.Extensions
 > dotnet add package Autofac.AspNetCore.Extensions
 ```
 
+## Nuget Packages
+* Autofac.Extensions.DependencyInjection
+* Autofac.Multitenant
+* Autofac.AspNetCore.Multitenant
+
 ## Single Tenant Usage ASP.NET Core 2.2
 ```
 public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
