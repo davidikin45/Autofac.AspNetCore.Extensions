@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>David Ikin</Authors>
+    <Company>David IkinDavid Ikin</Company>
+    <Copyright>(c) David Ikin</Copyright>
+    <Description>ASP.NET Core library with IWebHostBuilder Single Tenant and Multitenant Autofac Extensions</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/davidikin45/Autofac.AspNetCore.Extensions</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/davidikin45/Autofac.AspNetCore.Extensions</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Autofac AspNetCore</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac.AspNetCore.Multitenant" Version="1.1.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>
