@@ -46,11 +46,6 @@ namespace Autofac.AspNetCore.Extensions
             }
         }
 
-        public class AutofacOptions
-        {
-            public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
-        }
-
         public static IServiceCollection AddAutofacMultitenant(this IServiceCollection services, Action<MultitenantContainer> mtcSetter, Action<AutofacMultitenantOptions> setupAction = null)
         {
             var options = new AutofacMultitenantOptions();
@@ -96,11 +91,14 @@ namespace Autofac.AspNetCore.Extensions
                 return new AutofacServiceProvider(mtc);
             }
         }
-
-        public class AutofacMultitenantOptions
-        {
-            public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetRequiredService<ITenantIdentificationStrategy>();
-            public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
-        }
+    }
+    public class AutofacOptions
+    {
+        public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
+    }
+    public class AutofacMultitenantOptions
+    {
+        public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetRequiredService<ITenantIdentificationStrategy>();
+        public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
     }
 }
