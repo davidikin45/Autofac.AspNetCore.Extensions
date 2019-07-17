@@ -11,12 +11,13 @@
     <RepositoryUrl>https://github.com/davidikin45/Autofac.AspNetCore.Extensions</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Autofac AspNetCore</PackageTags>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac.AspNetCore.Multitenant" Version="1.1.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.4.0" />
+    <PackageReference Include="Autofac.Multitenant" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
   </ItemGroup>
 
