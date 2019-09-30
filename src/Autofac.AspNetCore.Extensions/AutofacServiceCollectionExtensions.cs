@@ -115,7 +115,7 @@ namespace Autofac.AspNetCore.Extensions
     }
     public class AutofacMultitenantOptions
     {
-        public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetService<ITenantIdentificationStrategy>() ?? new DefaultQueryStringTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultQueryStringTenantIdentificationStrategy>>());
+        public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetService<ITenantIdentificationStrategy>() ?? new CompositeTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), new ITenantIdentificationStrategy[] { new DefaultQueryStringTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultQueryStringTenantIdentificationStrategy>>()), new DefaultSubdomainTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultSubdomainTenantIdentificationStrategy>>())});
         public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
 
         public Func<IContainer, ITenantIdentificationStrategy, MultitenantContainer> CreateMultiTenantContainer { get; set; } = (container, strategy) => {

@@ -3,17 +3,16 @@ using Autofac.Multitenant;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 using System;
 using System.Linq;
 
 namespace Autofac.AspNetCore.Extensions
 {
-    public class DefaultQueryStringTenantIdentificationStrategy : ITenantIdentificationStrategy
+    public class DefaultSubdomainTenantIdentificationStrategy : ITenantIdentificationStrategy
     {
-        private readonly ILogger<DefaultQueryStringTenantIdentificationStrategy> _logger;
+        private readonly ILogger<DefaultSubdomainTenantIdentificationStrategy> _logger;
 
-        public DefaultQueryStringTenantIdentificationStrategy(IHttpContextAccessor accessor, ILogger<DefaultQueryStringTenantIdentificationStrategy> logger)
+        public DefaultSubdomainTenantIdentificationStrategy(IHttpContextAccessor accessor, ILogger<DefaultSubdomainTenantIdentificationStrategy> logger)
         {
             this.Accessor = accessor;
             this._logger = logger;
@@ -47,12 +46,12 @@ namespace Autofac.AspNetCore.Extensions
             if (temp != null)
             {
                 tenantId = temp;
-                context.Items["_tenantId"] = tenantId;
-                this._logger.LogInformation("Identified tenant from query string: {tenant}", tenantId);
+                context.Items["_tenantId"] = temp;
+                this._logger.LogInformation("Identified tenant from host: {tenant}", tenantId);
                 return true;
             }
 
-            this._logger.LogWarning("Unable to identify tenant from query string.");
+            this._logger.LogWarning("Unable to identify tenant from host.");
             tenantId = null;
             context.Items["_tenantId"] = null;
             return false;
@@ -60,9 +59,14 @@ namespace Autofac.AspNetCore.Extensions
 
         public virtual string GetValueFromRequest(HttpContext context)
         {
-            StringValues tenantValues;
-            if (context.Request.Query.TryGetValue("tenant", out tenantValues))
-                return tenantValues[0];
+            var host = context.Request.Host.Value.Replace("www.", "");
+            var hostWithoutPort = host.Split(':')[0];
+            var hostSplit = hostWithoutPort.Split('.');
+
+            if ((hostSplit.Length == 3 && hostSplit[2] != "localhost") || (hostSplit.Length == 2 && hostSplit[1] == "localhost"))
+            {
+                return hostSplit[0];
+            }
 
             return null;
         }
@@ -72,6 +76,5 @@ namespace Autofac.AspNetCore.Extensions
             var mtc = context.RequestServices.GetRequiredService<IServiceProvider>().GetAutofacMultitenantRoot();
             return mtc.GetTenants().Any(t => t.Equals(value)) ? value : null;
         }
-
     }
 }
