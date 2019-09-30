@@ -1,8 +1,5 @@
-﻿using Autofac.Multitenant;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Hosting;
 using System;
-using static Autofac.AspNetCore.Extensions.AutofacServiceCollectionExtensions;
 
 namespace Autofac.AspNetCore.Extensions
 {
@@ -21,12 +18,16 @@ namespace Autofac.AspNetCore.Extensions
         /// </summary>
         public static IWebHostBuilder UseAutofacMultiTenant(this IWebHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
         {
-            MultitenantContainer multiTenantContainer = null;
-            Func<MultitenantContainer> multitenantContainerAccessor = () => multiTenantContainer;
-            Action<MultitenantContainer> multitenantContainerSetter = (mtc) => { multiTenantContainer = mtc; };
-            builder.ConfigureServices(services => services.AddAutofacMultitenant(multitenantContainerSetter, setupAction));
-            builder.ConfigureServices(services => services.AddSingleton((sp) => multiTenantContainer));
-            return builder.UseAutofacMultitenantRequestServices(multitenantContainerAccessor);
+
+            builder.ConfigureServices(services => services.AddAutofacMultitenant(setupAction));
+
+            //RequestServicesContainerMiddleware
+            //When using the WebHostBuilder the UseAutofacMultitenantRequestServices extension is used to tie the multitenant container to the request lifetime scope generation process.
+
+            //Unfortunately, that means the IServiceScopeFactory is created / resolved at the point when the request comes in, long before an HttpContext is set in any IHttpContextAccessor. The result is the scope factory ends up coming from the default tenant scope, before a tenant can be identified, and per-request services will later all come from the default tenant.Multitenancy fails.
+            //This package provides a different request services middleware that ensures the IHttpContextAccessor.HttpContext is set and defers creation of the request lifetime scope until as late as possible so anything needed for tenant identification can be established.
+            //Adds IHttpContextAccessor
+            return builder.UseAutofacMultitenantRequestServices();
         }
     }
 }

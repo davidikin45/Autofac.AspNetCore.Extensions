@@ -1,6 +1,9 @@
 ﻿using Autofac.Extensions.DependencyInjection;
+using Autofac.Integration.AspNetCore.Multitenant;
 using Autofac.Multitenant;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 
 namespace Autofac.AspNetCore.Extensions
@@ -16,7 +19,7 @@ namespace Autofac.AspNetCore.Extensions
             return services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(new AutofacServiceProviderFactory(options));
         }
 
-        private class AutofacServiceProviderFactory : IServiceProviderFactory<ContainerBuilder>
+        public class AutofacServiceProviderFactory : IServiceProviderFactory<ContainerBuilder>
         {
             private readonly AutofacOptions _options;
 
@@ -33,6 +36,7 @@ namespace Autofac.AspNetCore.Extensions
 
                 _options.ConfigureContainer(containerBuilder);
 
+
                 return containerBuilder;
             }
 
@@ -40,28 +44,27 @@ namespace Autofac.AspNetCore.Extensions
             {
                 if (builder == null) throw new ArgumentNullException(nameof(builder));
 
+                //IServiceProvider.GetAutofacRoot()
                 var container = builder.Build();
 
                 return new AutofacServiceProvider(container);
             }
         }
 
-        public static IServiceCollection AddAutofacMultitenant(this IServiceCollection services, Action<MultitenantContainer> mtcSetter, Action<AutofacMultitenantOptions> setupAction = null)
+        public static IServiceCollection AddAutofacMultitenant(this IServiceCollection services, Action<AutofacMultitenantOptions> setupAction = null)
         {
             var options = new AutofacMultitenantOptions();
             if (setupAction != null)
                 setupAction(options);
 
-            return services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(new AutofacMultiTenantServiceProviderFactory(mtcSetter, options));
+            return services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(new AutofacMultiTenantServiceProviderFactory(options));
         }
-        private class AutofacMultiTenantServiceProviderFactory : IServiceProviderFactory<ContainerBuilder>
+        public class AutofacMultiTenantServiceProviderFactory : IServiceProviderFactory<ContainerBuilder>
         {
-            private Action<MultitenantContainer> _mtcSetter;
             private readonly AutofacMultitenantOptions _options;
 
-            public AutofacMultiTenantServiceProviderFactory(Action<MultitenantContainer> mtcSetter, AutofacMultitenantOptions options)
+            public AutofacMultiTenantServiceProviderFactory(AutofacMultitenantOptions options)
             {
-                _mtcSetter = mtcSetter;
                 _options = options;
             }
 
@@ -78,17 +81,31 @@ namespace Autofac.AspNetCore.Extensions
 
             public IServiceProvider CreateServiceProvider(ContainerBuilder builder)
             {
+
                 if (builder == null) throw new ArgumentNullException(nameof(builder));
+
+                AutofacMultitenantServiceProvider provider = null;
+
+                builder.Register(_ => provider)
+               .As<IServiceProvider>()
+               .ExternallyOwned();
+
+                //IServiceProvider.GetAutofacMultitenantRoot()
+                MultitenantContainer mtc = null;
+
+                builder.Register(_ => mtc)
+                .AsSelf()
+                .ExternallyOwned();
 
                 var container = builder.Build();
 
-                var tenantIdentificationStrategy = _options.TenantIdentificationStrategy(new AutofacServiceProvider(container));
+                var strategy = _options.TenantIdentificationStrategy(new AutofacServiceProvider(container));
 
-                var mtc = new MultitenantContainer(tenantIdentificationStrategy, container);
+                mtc = _options.CreateMultiTenantContainer(container, strategy);
 
-                _mtcSetter(mtc);
+                provider = new AutofacMultitenantServiceProvider(mtc);
 
-                return new AutofacServiceProvider(mtc);
+                return provider;
             }
         }
     }
@@ -98,7 +115,11 @@ namespace Autofac.AspNetCore.Extensions
     }
     public class AutofacMultitenantOptions
     {
-        public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetRequiredService<ITenantIdentificationStrategy>();
+        public Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategy { get; set; } = (sp) => sp.GetService<ITenantIdentificationStrategy>() ?? new DefaultQueryStringTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultQueryStringTenantIdentificationStrategy>>());
         public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });
+
+        public Func<IContainer, ITenantIdentificationStrategy, MultitenantContainer> CreateMultiTenantContainer { get; set; } = (container, strategy) => {
+            return new MultitenantContainer(strategy, container);
+        };
     }
 }
