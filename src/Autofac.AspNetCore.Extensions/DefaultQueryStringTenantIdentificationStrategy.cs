@@ -43,7 +43,7 @@ namespace Autofac.AspNetCore.Extensions
                 return tenantId != null;
             }
 
-            var temp = MapToTenantId(context, GetValueFromRequest(context));
+            var temp = MapTenantSlugToTenantId(context, GetTenantSlugFromRequest(context));
             if (temp != null)
             {
                 tenantId = temp;
@@ -58,7 +58,7 @@ namespace Autofac.AspNetCore.Extensions
             return false;
         }
 
-        public virtual string GetValueFromRequest(HttpContext context)
+        public virtual string GetTenantSlugFromRequest(HttpContext context)
         {
             StringValues tenantValues;
             if (context.Request.Query.TryGetValue("tenant", out tenantValues))
@@ -67,10 +67,10 @@ namespace Autofac.AspNetCore.Extensions
             return null;
         }
 
-        public virtual string MapToTenantId(HttpContext context, string value)
+        public virtual string MapTenantSlugToTenantId(HttpContext context, string tenantSlug)
         {
-            var mtc = context.RequestServices.GetRequiredService<IServiceProvider>().GetAutofacMultitenantRoot();
-            return mtc.GetTenants().Any(t => t.Equals(value)) ? value : null;
+            var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
+            return mtc.GetTenants().Any(t => t.Equals(tenantSlug)) ? tenantSlug : null;
         }
 
     }

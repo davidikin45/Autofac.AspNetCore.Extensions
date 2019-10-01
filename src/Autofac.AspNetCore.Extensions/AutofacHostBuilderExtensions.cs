@@ -22,7 +22,7 @@ namespace Autofac.AspNetCore.Extensions
         /// <summary>
         /// Uses the autofac multi tenant container.
         /// </summary>
-        public static IHostBuilder UseAutofacMultiTenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
         {
             var options = new AutofacMultitenantOptions();
             if (setupAction != null)

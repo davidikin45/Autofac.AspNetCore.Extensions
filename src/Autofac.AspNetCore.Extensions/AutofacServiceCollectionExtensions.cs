@@ -84,11 +84,11 @@ namespace Autofac.AspNetCore.Extensions
 
                 if (builder == null) throw new ArgumentNullException(nameof(builder));
 
-                AutofacMultitenantServiceProvider provider = null;
+                //AutofacMultitenantServiceProvider provider = null;
 
-                builder.Register(_ => provider)
-               .As<IServiceProvider>()
-               .ExternallyOwned();
+               // builder.Register(_ => provider)
+               //.As<IServiceProvider>()
+               //.ExternallyOwned();
 
                 //IServiceProvider.GetAutofacMultitenantRoot()
                 MultitenantContainer mtc = null;
@@ -103,12 +103,13 @@ namespace Autofac.AspNetCore.Extensions
 
                 mtc = _options.CreateMultiTenantContainer(container, strategy);
 
-                provider = new AutofacMultitenantServiceProvider(mtc);
+                var provider = new AutofacMultitenantServiceProvider(mtc);
 
                 return provider;
             }
         }
     }
+
     public class AutofacOptions
     {
         public Action<ContainerBuilder> ConfigureContainer { get; set; } = (builder => { });

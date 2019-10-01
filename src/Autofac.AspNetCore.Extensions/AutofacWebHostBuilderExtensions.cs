@@ -16,7 +16,7 @@ namespace Autofac.AspNetCore.Extensions
         /// <summary>
         /// Uses the autofac multi tenant container.
         /// </summary>
-        public static IWebHostBuilder UseAutofacMultiTenant(this IWebHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
+        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
         {
 
             builder.ConfigureServices(services => services.AddAutofacMultitenant(setupAction));
