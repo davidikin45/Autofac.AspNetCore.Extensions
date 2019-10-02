@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using static Autofac.AspNetCore.Extensions.AutofacServiceCollectionExtensions;
+using Microsoft.Extensions.Options;
 
 namespace Autofac.AspNetCore.Extensions
 {
@@ -39,6 +41,10 @@ namespace Autofac.AspNetCore.Extensions
                 //This package provides a different request services middleware that ensures the IHttpContextAccessor.HttpContext is set and defers creation of the request lifetime scope until as late as possible so anything needed for tenant identification can be established.
                 //Adds IHttpContextAccessor
                 services.AddAutofacMultitenantRequestServices();
+
+                services.AddSingleton(options);
+                services.AddTransient<TenantInitializationExecutor>();
+                services.AddHostedService<TenantInitializationHostedService>();
             });
         }
     }
