@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace Autofac.AspNetCore.Extensions
 
             if(configureAppConfiguration != null)
             {
-                var context = new TenantBuilderContext()
+                var context = new TenantBuilderContext(tenantId)
                 {
                     Configuration = finalTenantConfig,
                     HostingEnvironment = environment
@@ -59,7 +60,10 @@ namespace Autofac.AspNetCore.Extensions
                 }
             }
 
-            return finalTenantConfig;
+            //Need to add providers via constructor for change tracking
+            var returnConfig = new ConfigurationRoot(finalTenantConfigProviders);
+
+            return returnConfig;
         }
     }
 }

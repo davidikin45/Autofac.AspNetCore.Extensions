@@ -3,19 +3,22 @@ using Autofac.Multitenant;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Linq;
 
 namespace Autofac.AspNetCore.Extensions
 {
-    public class DefaultSubdomainTenantIdentificationStrategy : ITenantIdentificationStrategy
+    public class DefaultQueryStringTenantIdentificationStrategy : ITenantIdentificationStrategy
     {
-        private readonly ILogger<DefaultSubdomainTenantIdentificationStrategy> _logger;
+        private readonly ILogger<DefaultQueryStringTenantIdentificationStrategy> _logger;
+        private readonly AutofacMultitenantOptions _options;
 
-        public DefaultSubdomainTenantIdentificationStrategy(IHttpContextAccessor accessor, ILogger<DefaultSubdomainTenantIdentificationStrategy> logger)
+        public DefaultQueryStringTenantIdentificationStrategy(IHttpContextAccessor accessor, ILogger<DefaultQueryStringTenantIdentificationStrategy> logger, AutofacMultitenantOptions options)
         {
             this.Accessor = accessor;
             this._logger = logger;
+            _options = options;
         }
 
         public IHttpContextAccessor Accessor { get; private set; }
@@ -42,16 +45,17 @@ namespace Autofac.AspNetCore.Extensions
                 return tenantId != null;
             }
 
-            var temp = MapTenantSlugToTenantId(context, GetTenantSlugFromRequest(context));
-            if (temp != null)
+            var tenantSlug = GetTenantSlugFromRequest(context);
+            if(tenantSlug != null)
             {
+                var temp = MapTenantSlugToTenantId(context, tenantSlug);
                 tenantId = temp;
-                context.Items["_tenantId"] = temp;
-                this._logger.LogInformation("Identified tenant from host: {tenant}", tenantId);
+                context.Items["_tenantId"] = tenantId;
+                this._logger.LogInformation("Identified tenant from query string: {tenant}", tenantId);
                 return true;
             }
 
-            this._logger.LogWarning("Unable to identify tenant from host.");
+            this._logger.LogWarning("Unable to identify tenant from query string.");
             tenantId = null;
             context.Items["_tenantId"] = null;
             return false;
@@ -59,22 +63,19 @@ namespace Autofac.AspNetCore.Extensions
 
         public virtual string GetTenantSlugFromRequest(HttpContext context)
         {
-            var host = context.Request.Host.Value.Replace("www.", "");
-            var hostWithoutPort = host.Split(':')[0];
-            var hostSplit = hostWithoutPort.Split('.');
-
-            if ((hostSplit.Length == 3 && hostSplit[2] != "localhost") || (hostSplit.Length == 2 && hostSplit[1] == "localhost"))
-            {
-                return hostSplit[0];
-            }
+            StringValues tenantValues;
+            if (context.Request.Query.TryGetValue("tenant", out tenantValues))
+                return tenantValues[0];
 
             return null;
         }
 
-        public virtual string MapTenantSlugToTenantId(HttpContext context, string value)
+        public virtual string MapTenantSlugToTenantId(HttpContext context, string tenantSlug)
         {
-            var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
-            return mtc.GetTenants().Any(t => t.Equals(value)) ? value : null;
+           tenantSlug = tenantSlug ?? string.Empty;
+           var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
+           return mtc.GetTenants().ToList().Any(t => string.Equals(t as string, tenantSlug, StringComparison.OrdinalIgnoreCase)) ? tenantSlug.ToLowerInvariant() : null;
         }
+
     }
 }

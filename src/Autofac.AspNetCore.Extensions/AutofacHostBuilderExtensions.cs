@@ -1,39 +1,68 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using System;
+﻿using Autofac.AspNetCore.Extensions.Antiforgery;
+using Autofac.AspNetCore.Extensions.Middleware;
+using Autofac.AspNetCore.Extensions.OptionsCache;
+using Autofac.AspNetCore.Extensions.Security;
+using Autofac.AspNetCore.Extensions.TempData;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
-using static Autofac.AspNetCore.Extensions.AutofacServiceCollectionExtensions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System;
+using static Autofac.AspNetCore.Extensions.AutofacServiceCollectionExtensions;
 
 namespace Autofac.AspNetCore.Extensions
 {
     public static class AutofacWHostBuilderExtensions
     {
+#if NETCOREAPP3_0
         /// <summary>
         /// Uses the autofac container.
         /// </summary>
-        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<AutofacOptions> setupAction = null)
-        {
-            var options = new AutofacOptions();
-            if (setupAction != null)
-                setupAction(options);
+        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<AutofacOptions> configure = null) => builder.UseAutofac((context, options) => configure(options));
 
-            return builder.UseServiceProviderFactory(new AutofacServiceProviderFactory(options));
+        /// <summary>
+        /// Uses the autofac container.
+        /// </summary>
+        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<HostBuilderContext, AutofacOptions> configure = null)
+        {
+            return builder.UseServiceProviderFactory(context =>
+            {
+                var options = new AutofacOptions();
+                if (configure != null)
+                    configure(context, options);
+
+                return new AutofacServiceProviderFactory(options)
+                ;
+            });
         }
 
         /// <summary>
         /// Uses the autofac multi tenant container.
         /// </summary>
-        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> setupAction = null)
-        {
-            var options = new AutofacMultitenantOptions();
-            if (setupAction != null)
-                setupAction(options);
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> configure = null) => builder.UseAutofacMultitenant((context, options) => configure(options));
 
-            builder.UseServiceProviderFactory(new AutofacMultiTenantServiceProviderFactory(options));
+        /// <summary>
+        /// Uses the autofac multi tenant container.
+        /// </summary>
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<HostBuilderContext, AutofacMultitenantOptions> configure = null)
+        {
+            AutofacMultitenantOptions options = null;
+
+            builder.UseServiceProviderFactory(context =>
+            {
+                return new AutofacMultiTenantServiceProviderFactory(options);
+            });
 
             return builder.ConfigureServices((context, services) =>
             {
+                services.AddTenantConfiguration();
                 //RequestServicesContainerMiddleware
                 //When using the WebHostBuilder the UseAutofacMultitenantRequestServices extension is used to tie the multitenant container to the request lifetime scope generation process.\\ASP.NET Core default RequestServicesContainerMiddleware is where the per-request lifetime scope usually gets generated. However, its constructor is where it wants the IServiceScopeFactory that will be used later during the request to create the request lifetime scope.
 
@@ -42,10 +71,73 @@ namespace Autofac.AspNetCore.Extensions
                 //Adds IHttpContextAccessor
                 services.AddAutofacMultitenantRequestServices();
 
-                services.AddSingleton(options);
-                services.AddTransient<TenantInitializationExecutor>();
-                services.AddHostedService<TenantInitializationHostedService>();
+                options = new AutofacMultitenantOptions();
+                if (configure != null)
+                    configure(context, options);
+
+                if(options.ConfigureStaticFilesDelegate != null)
+                {
+                    services.ConfigureMultitenantStaticFilesRewriteOptions(options.ConfigureStaticFilesDelegate);
+                }
+
+                services.AddSingleton<IStartupFilter, Tenant404StartupFilter>();
+
+                services.AddSingleton<IStartupFilter, TenantStaticFilesRewriteStartupFilter>();
+
+                services.AddSingleton(sp => options);
+                services.AddTransient<MultitenantInitializationExecutor>();
+                services.AddHostedService<MultitenantInitializationHostedService>();
+
+                //https://github.com/aspnet/Extensions/blob/90476ca2be4bd7d32dbf47ffbccf0371b58c67b7/src/Options/Options/src/OptionsFactory.cs
+                //services.TryAdd(ServiceDescriptor.Transient(typeof(IOptionsFactory<>), typeof(OptionsFactory<>)));
+
+                //https://github.com/aspnet/Extensions/blob/90476ca2be4bd7d32dbf47ffbccf0371b58c67b7/src/Options/Options/src/OptionsManager.cs
+                //services.TryAdd(ServiceDescriptor.Singleton(typeof(IOptions<>), typeof(OptionsManager<>))); Factory
+                //services.TryAdd(ServiceDescriptor.Scoped(typeof(IOptionsSnapshot<>), typeof(OptionsManager<>))); F
+
+                //https://github.com/aspnet/Extensions/blob/90476ca2be4bd7d32dbf47ffbccf0371b58c67b7/src/Options/Options/src/OptionsMonitor.cs
+                //services.TryAdd(ServiceDescriptor.Singleton(typeof(IOptionsMonitor<>), typeof(OptionsMonitor<>))); F OC
+                //https://github.com/aspnet/Extensions/blob/730c5d93b2e3f2dc0f045c90e79ad9443ea169da/src/Options/Options/src/OptionsCache.cs
+                //services.TryAdd(ServiceDescriptor.Singleton(typeof(IOptionsMonitorCache<>), typeof(OptionsCache<>)));
+
+                services.AddTransient(typeof(IOptionsFactory<>), typeof(MultitenantOptionsFactory<>));
+
+                services.AddSingleton(typeof(IOptions<>), typeof(MultitenantOptionsManager<>));
+                services.AddScoped(typeof(IOptionsSnapshot<>), typeof(MultitenantOptionsManager<>));
+                services.AddSingleton(typeof(IOptionsMonitor<>), typeof(MultitenantOptionsMonitor<>));
+                services.AddSingleton(typeof(IOptionsMonitorCache<>), typeof(MultitenantOptionsMonitorCache<>));
+
+                //AuthenticationHandlerProvider
+                //JwtBearerHandler - Transient
+                //IOptionsMonitor<T>
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerMulitenantPostConfigureOptions>());
+
+                //AuthenticationHandlerProvider
+                //CookieAuthenticationHandler - Transient
+                //IOptionsMonitor<T>
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieAuthenticationOptions>, CookieAuthenticationMulitenantPostConfigureOptions>());
+
+                //Antitforgery
+                //IHtmlGenerator - Singleton
+                //IAntiForgery - Singleton
+                //IOptions<AntiforgeryOptions> - Singleton
+                services.AddSingleton<IAntiforgery, MultitenantAntiforgery>();
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<AntiforgeryOptions>, AntiForgeryMultitenantPostConfigureOptions>());
+                services.AddSingleton<IAntiforgeryAdditionalDataProvider, AntiForgeryMultitenantAdditionalData>();
+
+                //TempData
+                //ViewResultExecutor - Singleton
+                //ITempDataDictionaryFactory - Singleton
+                //CookieTempDataProvider - Singleton
+                //IOptions<CookieTempDataProviderOptions> - Singleton
+                services.AddSingleton<ITempDataProvider, MultitenantCookieTempDataProvider>();
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieTempDataProviderOptions>, CookieTempDataPostConfigureOptions>());
+
+                //SessionMiddleware
+                //IOptions<SessionOptions> - Singleton
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<SessionOptions>, SessionPostConfigureOptions>());
             });
         }
+#endif
     }
 }

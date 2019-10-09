@@ -40,16 +40,15 @@ namespace Autofac.AspNetCore.Extensions
 
             foreach (var identificationStrategy in _identificationStrategies)
             {
-                identificationStrategy.TryIdentifyTenant(out tenantId);
-
-                if (tenantId != null)
+                if(identificationStrategy.TryIdentifyTenant(out tenantId))
                 {
                     context.Items["_tenantId"] = tenantId;
                     return true;
                 }
                 else
+                {
                     context.Items.Remove("_tenantId");
-
+                }
             }
 
             tenantId = null;
