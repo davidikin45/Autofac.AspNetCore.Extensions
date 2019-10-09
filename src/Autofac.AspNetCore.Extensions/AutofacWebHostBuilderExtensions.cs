@@ -20,16 +20,17 @@ namespace Autofac.AspNetCore.Extensions
 {
     public static class AutofacWebHostBuilderExtensions
     {
+        public static IWebHostBuilder UseAutofac(this IWebHostBuilder builder) => builder.UseAutofac((options) => { });
 
         /// <summary>
         /// Uses the autofac container.
         /// </summary>
-        public static IWebHostBuilder UseAutofac(this IWebHostBuilder builder, Action<AutofacOptions> configure = null) => builder.UseAutofac((context, options) => configure(options));
+        public static IWebHostBuilder UseAutofac(this IWebHostBuilder builder, Action<AutofacOptions> configure) => builder.UseAutofac((context, options) => configure(options));
 
         /// <summary>
         /// Uses the autofac container.
         /// </summary>
-        public static IWebHostBuilder UseAutofac(this IWebHostBuilder builder, Action<WebHostBuilderContext, AutofacOptions> configure = null)
+        public static IWebHostBuilder UseAutofac(this IWebHostBuilder builder, Action<WebHostBuilderContext, AutofacOptions> configure)
         {
             return builder.ConfigureServices((context, services) => {
 
@@ -40,15 +41,17 @@ namespace Autofac.AspNetCore.Extensions
             });
         }
 
-        /// <summary>
-        /// Uses the autofac multi tenant container.
-        /// </summary>
-        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder, Action<AutofacMultitenantOptions> configure = null) => builder.UseAutofacMultitenant((context, options) => configure(options));
+        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder) => builder.UseAutofacMultitenant((options) => { });
 
         /// <summary>
         /// Uses the autofac multi tenant container.
         /// </summary>
-        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder, Action<WebHostBuilderContext, AutofacMultitenantOptions> configure = null)
+        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder, Action<AutofacMultitenantOptions> configure) => builder.UseAutofacMultitenant((context, options) => configure(options));
+
+        /// <summary>
+        /// Uses the autofac multi tenant container.
+        /// </summary>
+        public static IWebHostBuilder UseAutofacMultitenant(this IWebHostBuilder builder, Action<WebHostBuilderContext, AutofacMultitenantOptions> configure)
         {
             //RequestServicesContainerMiddleware
             //When using the WebHostBuilder the UseAutofacMultitenantRequestServices extension is used to tie the multitenant container to the request lifetime scope generation process.

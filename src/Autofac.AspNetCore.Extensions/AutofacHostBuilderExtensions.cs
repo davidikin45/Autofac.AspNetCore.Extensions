@@ -22,15 +22,17 @@ namespace Autofac.AspNetCore.Extensions
     public static class AutofacWHostBuilderExtensions
     {
 #if NETCOREAPP3_0
-        /// <summary>
-        /// Uses the autofac container.
-        /// </summary>
-        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<AutofacOptions> configure = null) => builder.UseAutofac((context, options) => configure(options));
+        public static IHostBuilder UseAutofac(this IHostBuilder builder) => builder.UseAutofac((options) => { });
 
         /// <summary>
         /// Uses the autofac container.
         /// </summary>
-        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<HostBuilderContext, AutofacOptions> configure = null)
+        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<AutofacOptions> configure) => builder.UseAutofac((context, options) => configure(options));
+
+        /// <summary>
+        /// Uses the autofac container.
+        /// </summary>
+        public static IHostBuilder UseAutofac(this IHostBuilder builder, Action<HostBuilderContext, AutofacOptions> configure)
         {
             return builder.UseServiceProviderFactory(context =>
             {
@@ -43,15 +45,17 @@ namespace Autofac.AspNetCore.Extensions
             });
         }
 
-        /// <summary>
-        /// Uses the autofac multi tenant container.
-        /// </summary>
-        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> configure = null) => builder.UseAutofacMultitenant((context, options) => configure(options));
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder) => builder.UseAutofacMultitenant((options) => { });
 
         /// <summary>
         /// Uses the autofac multi tenant container.
         /// </summary>
-        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<HostBuilderContext, AutofacMultitenantOptions> configure = null)
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<AutofacMultitenantOptions> configure) => builder.UseAutofacMultitenant((context, options) => configure(options));
+
+        /// <summary>
+        /// Uses the autofac multi tenant container.
+        /// </summary>
+        public static IHostBuilder UseAutofacMultitenant(this IHostBuilder builder, Action<HostBuilderContext, AutofacMultitenantOptions> configure)
         {
             AutofacMultitenantOptions options = null;
 
