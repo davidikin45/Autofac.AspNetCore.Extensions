@@ -12,7 +12,7 @@ namespace Autofac.AspNetCore.Extensions
             return services.Configure(configure);
         }
 
-        public static IApplicationBuilder UseMulitenantStaticFiles(this IApplicationBuilder app)
+        public static IApplicationBuilder UseMultitenantStaticFiles(this IApplicationBuilder app)
         {
             return app.UseMiddleware<MultitenantStaticFilesRewriteMiddleware>();
         }

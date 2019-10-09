@@ -82,7 +82,7 @@ namespace Autofac.AspNetCore.Extensions
 
                 services.AddSingleton<IStartupFilter, Tenant404StartupFilter>();
 
-                services.AddSingleton<IStartupFilter, TenantStaticFilesRewriteStartupFilter>();
+                //services.AddSingleton<IStartupFilter, TenantStaticFilesRewriteStartupFilter>();
 
                 services.AddSingleton(sp => options);
                 services.AddTransient<MultitenantInitializationExecutor>();
