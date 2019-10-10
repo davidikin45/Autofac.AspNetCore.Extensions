@@ -49,9 +49,12 @@ namespace Autofac.AspNetCore.Extensions
             if(tenantSlug != null)
             {
                 var temp = MapTenantSlugToTenantId(context, tenantSlug);
-                tenantId = temp;
+                context.Items["_requestTenantId"] = temp;
+
+                tenantId = MapTenantIdToContainerId(context, temp);
                 context.Items["_tenantId"] = tenantId;
-                this._logger.LogInformation("Identified tenant from query string: {tenant}", tenantId);
+
+                this._logger.LogInformation("Identified tenant from query string: {tenant}", temp);
                 return true;
             }
 
@@ -72,10 +75,22 @@ namespace Autofac.AspNetCore.Extensions
 
         public virtual string MapTenantSlugToTenantId(HttpContext context, string tenantSlug)
         {
-           tenantSlug = tenantSlug ?? string.Empty;
-           var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
-           return mtc.GetTenants().ToList().Any(t => string.Equals(t as string, tenantSlug, StringComparison.OrdinalIgnoreCase)) ? tenantSlug.ToLowerInvariant() : null;
+            if (string.IsNullOrEmpty(tenantSlug))
+                return null;
+
+            return tenantSlug.ToLowerInvariant();
         }
 
+        public virtual string MapTenantIdToContainerId(HttpContext context, string tenantId)
+        {
+            //null > new DefaultTenantId()
+            //Anything not null will get used/added
+
+            if (tenantId == null)
+                return null;
+
+            var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
+            return mtc.GetTenants().ToList().Any(t => string.Equals(t as string, tenantId, StringComparison.OrdinalIgnoreCase)) ? tenantId : null;
+        }
     }
 }

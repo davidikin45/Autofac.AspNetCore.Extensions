@@ -1,4 +1,5 @@
 ﻿using Autofac.AspNetCore.Extensions.Antiforgery;
+using Autofac.AspNetCore.Extensions.Data;
 using Autofac.AspNetCore.Extensions.Middleware;
 using Autofac.AspNetCore.Extensions.OptionsCache;
 using Autofac.AspNetCore.Extensions.Security;
@@ -9,7 +10,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -66,6 +69,16 @@ namespace Autofac.AspNetCore.Extensions
 
             return builder.ConfigureServices((context, services) =>
             {
+                services.AddTransient<IPostConfigureOptions<RazorPagesOptions>, RazorPagesOptionsSetup>();
+
+                var tenant = new Tenant(string.Empty, context.Configuration);
+                services.AddSingleton<ITenant>(tenant);
+
+                services.AddTransient<ITenantService, MultiTenantService>();
+                services.AddTransient<ITenantDbContextStrategyService, MultiTenantDbContextStrategyService>();
+
+                services.AddTenantViewLocations();
+
                 services.AddTenantConfiguration();
                 //RequestServicesContainerMiddleware
                 //When using the WebHostBuilder the UseAutofacMultitenantRequestServices extension is used to tie the multitenant container to the request lifetime scope generation process.\\ASP.NET Core default RequestServicesContainerMiddleware is where the per-request lifetime scope usually gets generated. However, its constructor is where it wants the IServiceScopeFactory that will be used later during the request to create the request lifetime scope.
@@ -78,6 +91,11 @@ namespace Autofac.AspNetCore.Extensions
                 options = new AutofacMultitenantOptions();
                 if (configure != null)
                     configure(context, options);
+
+                foreach (var configureServices in options.ConfigureServicesList)
+                {
+                    configureServices(services);
+                }
 
                 if(options.ConfigureStaticFilesDelegate != null)
                 {

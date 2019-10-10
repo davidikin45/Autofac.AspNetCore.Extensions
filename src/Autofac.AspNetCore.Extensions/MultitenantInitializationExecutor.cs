@@ -36,17 +36,17 @@ namespace Autofac.AspNetCore.Extensions
 
                     var tenantConfiguration = _tenantConfigurations.FirstOrDefault(i => i.TenantId.ToString() == kvp.Key);
 
-                    var defaultBuilder = new TenantBuilder();
+                    var defaultBuilder = new TenantBuilder(kvp.Key);
                     foreach (var configureTenantsDelegate in _options.ConfigureTenantsDelegates)
                     {
                         configureTenantsDelegate(defaultBuilder);
                     }
 
-                    var tenantBuilder = new TenantBuilder();
+                    var tenantBuilder = new TenantBuilder(kvp.Key);
                     if (kvp.Value != null)
                         kvp.Value(tenantBuilder);
 
-                    var options = new TenantBuilder()
+                    var options = new TenantBuilder(kvp.Key)
                     {
                         ConfigureAppConfigurationDelegate = (context, builder) =>
                         {

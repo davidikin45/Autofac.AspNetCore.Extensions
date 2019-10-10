@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -18,14 +19,33 @@ namespace Autofac.AspNetCore.Extensions
             return configuration.GetSection("Tenants").Get<string[]>() ?? new string[] { };
         }
 
-        public static string GetTenantId(this HttpContext context)
+        public static bool TryGetRequestTenantId(this HttpContext context, out string tenantId)
         {
-            return context.Items.ContainsKey("_tenantId") ? context.Items["_tenantId"] != null ? context.Items["_tenantId"].ToString() : null : null;
+            if(context.Items.ContainsKey("_requestTenantId"))
+            {
+                tenantId = context.Items["_requestTenantId"] != null ? context.Items["_requestTenantId"].ToString() : null;
+                return true;
+            }
+            else
+            {
+                tenantId = null;
+                return false;
+            }
         }
 
-        public static IMvcBuilder AddHangfireTenantViewLocations(this IMvcBuilder builder)
+        public static string GetTenantId(this HttpContext context)
         {
-            builder.Services.Configure<RazorViewEngineOptions>(options =>
+            return context.RequestServices.GetTenantId();
+        }
+
+        public static string GetTenantId(this IServiceProvider serviceProvider)
+        {
+            return serviceProvider.GetService<ITenant>()?.Id;
+        }
+
+        public static IServiceCollection AddTenantViewLocations(this IServiceCollection services)
+        {
+            services.Configure<RazorViewEngineOptions>(options =>
             {
                 if (!(options.ViewLocationExpanders.FirstOrDefault() is TenantViewLocationExpander))
                 {
@@ -33,7 +53,7 @@ namespace Autofac.AspNetCore.Extensions
                 }
             });
 
-            return builder;
+            return services;
         }
 
         public static IServiceCollection AddTenantConfiguration(this IServiceCollection services, Assembly assembly)

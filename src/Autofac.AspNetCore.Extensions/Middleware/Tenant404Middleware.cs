@@ -12,16 +12,20 @@ namespace Autofac.AspNetCore.Extensions.Middleware
         private readonly RequestDelegate _next;
         private readonly AutofacMultitenantOptions _options;
 
-        public Tenant404Middleware(RequestDelegate next)
+        public Tenant404Middleware(RequestDelegate next, AutofacMultitenantOptions options)
         {
             this._next = next;
+            _options = options;
         }
 
         public Task InvokeAsync(HttpContext context)
         {
-            var tenantId = context.GetTenantId();
+            string tenantId;
+            var valid = context.TryGetRequestTenantId(out tenantId);
 
-            if(tenantId == null)
+            var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
+
+            if (!valid ||(tenantId == null && !_options.AllowDefaultTenantRequests) || (tenantId != null && !mtc.GetTenants().ToList().Any(t => string.Equals(t as string, tenantId, StringComparison.OrdinalIgnoreCase))))
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return Task.CompletedTask;

@@ -25,7 +25,7 @@ namespace Autofac.AspNetCore.Extensions.Mvc
         {
             foreach (var location in viewLocations)
             {
-                if (context.Values[ValueKey] != null)
+                if (!string.IsNullOrEmpty(context.Values[ValueKey]))
                 {
                     yield return location.Replace("{0}", context.Values[ValueKey] + "/{0}");
                 }

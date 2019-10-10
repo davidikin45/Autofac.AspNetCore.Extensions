@@ -43,18 +43,24 @@ namespace Autofac.AspNetCore.Extensions
                 return tenantId != null;
             }
 
-            var temp = MapTenantSlugToTenantId(context, GetTenantSlugFromRequest(context));
+            var tenantSlug = GetTenantSlugFromRequest(context);
+            var temp = MapTenantSlugToTenantId(context, tenantSlug);
             if (temp != null)
             {
-                tenantId = temp;
-                context.Items["_tenantId"] = temp;
-                this._logger.LogInformation("Identified tenant from host: {tenant}", tenantId);
+                context.Items["_requestTenantId"] = temp;
+
+                tenantId = MapTenantIdToContainerId(context, temp);
+                context.Items["_tenantId"] = tenantId;
+
+                this._logger.LogInformation("Identified tenant from host subdomain: {tenant}", temp);
                 return true;
             }
 
-            this._logger.LogWarning("Unable to identify tenant from host.");
+            this._logger.LogWarning("Unable to identify tenant from host subdomain.");
             tenantId = null;
+
             context.Items["_tenantId"] = null;
+
             return false;
         }
 
@@ -74,9 +80,22 @@ namespace Autofac.AspNetCore.Extensions
 
         public virtual string MapTenantSlugToTenantId(HttpContext context, string tenantSlug)
         {
-            tenantSlug = tenantSlug ?? string.Empty;
+            if (tenantSlug is null)
+                return null;
+
+            return tenantSlug.ToLowerInvariant();
+        }
+
+        public virtual string MapTenantIdToContainerId(HttpContext context, string tenantId)
+        {
+            //null > new DefaultTenantId()
+            //Anything not null will get used/added
+
+            if (tenantId == null)
+                return null;
+
             var mtc = context.RequestServices.GetRequiredService<MultitenantContainer>();
-            return mtc.GetTenants().Any(t => string.Equals(t as string, tenantSlug, StringComparison.OrdinalIgnoreCase)) ? tenantSlug.ToLowerInvariant() : null;
+            return mtc.GetTenants().ToList().Any(t => string.Equals(t as string, tenantId, StringComparison.OrdinalIgnoreCase)) ? tenantId : null;
         }
     }
 }

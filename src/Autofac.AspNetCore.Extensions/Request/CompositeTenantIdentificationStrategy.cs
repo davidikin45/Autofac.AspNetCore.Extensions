@@ -42,12 +42,12 @@ namespace Autofac.AspNetCore.Extensions
             {
                 if(identificationStrategy.TryIdentifyTenant(out tenantId))
                 {
-                    context.Items["_tenantId"] = tenantId;
                     return true;
                 }
                 else
                 {
                     context.Items.Remove("_tenantId");
+                    context.Items.Remove("_requestTenantId");
                 }
             }
 

@@ -1,10 +1,12 @@
-﻿using Autofac.AspNetCore.Extensions.Middleware;
+﻿using Autofac.AspNetCore.Extensions.Data;
+using Autofac.AspNetCore.Extensions.Middleware;
 using Autofac.Extensions.DependencyInjection;
 using Autofac.Integration.AspNetCore.Multitenant;
 using Autofac.Multitenant;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -65,6 +67,11 @@ namespace Autofac.AspNetCore.Extensions
             if (setupAction != null)
                 setupAction(options);
 
+            foreach (var configureServices in options.ConfigureServicesList)
+            {
+                configureServices(services);
+            }
+
             if (options.ConfigureStaticFilesDelegate != null)
             {
                 services.ConfigureMultitenantStaticFilesRewriteOptions(options.ConfigureStaticFilesDelegate);
@@ -79,6 +86,7 @@ namespace Autofac.AspNetCore.Extensions
 
             return services.AddSingleton<IServiceProviderFactory<ContainerBuilder>>(sp => new AutofacMultiTenantServiceProviderFactory(sp.GetRequiredService<AutofacMultitenantOptions>()));
         }
+
         public class AutofacMultiTenantServiceProviderFactory : IServiceProviderFactory<ContainerBuilder>
         {
             private readonly AutofacMultitenantOptions _options;
@@ -156,18 +164,18 @@ namespace Autofac.AspNetCore.Extensions
                     var actionBuilder = new ConfigurationActionBuilder();
                     var tenantServices = new ServiceCollection();
 
-                    var defaultBuilder = new TenantBuilder();
+                    var defaultBuilder = new TenantBuilder(kvp.Key);
 
                     foreach (var ConfigureTenantsDelegate in _options.ConfigureTenantsDelegates)
                     {
                         ConfigureTenantsDelegate(defaultBuilder);
                     }
 
-                    var tenantBuilder = new TenantBuilder();
+                    var tenantBuilder = new TenantBuilder(kvp.Key);
                     if (kvp.Value != null)
                         kvp.Value(tenantBuilder);
 
-                    var options = new TenantBuilder()
+                    var options = new TenantBuilder(kvp.Key)
                     {
                         ConfigureAppConfigurationDelegate = (context, builder) =>
                         {
@@ -177,27 +185,37 @@ namespace Autofac.AspNetCore.Extensions
                                 tenantConfiguration.ConfigureAppConfiguration(context, builder);
                         },
                         ConfigureServicesDelegate = (context, services) =>
-                     {
-                         defaultBuilder.ConfigureServicesDelegate(context, services);
-                         tenantBuilder.ConfigureServicesDelegate(context, services);
-                         if (tenantConfiguration != null)
-                             tenantConfiguration.ConfigureServices(context, services);
-                     },
-                        InitializeDbAsyncDelegate = async (sp, cancellationToken) =>
-                     {
-                         await defaultBuilder.InitializeDbAsyncDelegate(sp, cancellationToken);
-                         await tenantBuilder.InitializeDbAsyncDelegate(sp, cancellationToken);
-                         if (tenantConfiguration != null)
-                             await tenantConfiguration.InitializeDbAsync(sp, cancellationToken);
-                     },
-                        InitializeAsyncDelegate = async (sp, cancellationToken) =>
-                     {
-                         await defaultBuilder.InitializeAsyncDelegate(sp, cancellationToken);
-                         await tenantBuilder.InitializeAsyncDelegate(sp, cancellationToken);
-                         if (tenantConfiguration != null)
-                             await tenantConfiguration.InitializeAsync(sp, cancellationToken);
-                     },
+                         {
+                             defaultBuilder.ConfigureServicesDelegate(context, services);
+                             tenantBuilder.ConfigureServicesDelegate(context, services);
+                             if (tenantConfiguration != null)
+                                 tenantConfiguration.ConfigureServices(context, services);
+                         },
+                            InitializeDbAsyncDelegate = async (sp, cancellationToken) =>
+                         {
+                             await defaultBuilder.InitializeDbAsyncDelegate(sp, cancellationToken);
+                             await tenantBuilder.InitializeDbAsyncDelegate(sp, cancellationToken);
+                             if (tenantConfiguration != null)
+                                 await tenantConfiguration.InitializeDbAsync(sp, cancellationToken);
+                         },
+                            InitializeAsyncDelegate = async (sp, cancellationToken) =>
+                         {
+                             await defaultBuilder.InitializeAsyncDelegate(sp, cancellationToken);
+                             await tenantBuilder.InitializeAsyncDelegate(sp, cancellationToken);
+                             if (tenantConfiguration != null)
+                                 await tenantConfiguration.InitializeAsync(sp, cancellationToken);
+                         }
                     };
+
+                    foreach (var hostName in defaultBuilder.HostNames)
+                    {
+                        _options.HostMappings.Add(hostName, kvp.Key);
+                    }
+
+                    foreach (var hostName in tenantBuilder.HostNames)
+                    {
+                        _options.HostMappings.Add(hostName, kvp.Key);
+                    }
 
                     var tenantConfig = TenantConfig.BuildTenantAppConfiguration(config, hostingEnvironment, kvp.Key, options.ConfigureAppConfigurationDelegate);
 
@@ -217,6 +235,12 @@ namespace Autofac.AspNetCore.Extensions
                 }
             }
         }
+
+        public static TenantDbContextIdentification<TContext> AddDbContextStrategy<TContext>(this IServiceCollection services)
+        where TContext : DbContext, IDbContextTenantBase
+        {
+            return new TenantDbContextIdentification<TContext>(services);
+        }
     }
 
     public class AutofacOptions
@@ -231,14 +255,28 @@ namespace Autofac.AspNetCore.Extensions
     }
     public class AutofacMultitenantOptions
     {
+        public bool AllowDefaultTenantRequests { get; set; } = true;
         public bool AutoAddITenantConfigurationTenants { get; set; } = true;
-        internal Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategyDelegate { get; set; } = (sp) => sp.GetService<ITenantIdentificationStrategy>() ?? new CompositeTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), new ITenantIdentificationStrategy[] { 
-            new DefaultQueryStringTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultQueryStringTenantIdentificationStrategy>>(), sp.GetRequiredService<AutofacMultitenantOptions>()), 
-            new DefaultSubdomainTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultSubdomainTenantIdentificationStrategy>>(), sp.GetRequiredService<AutofacMultitenantOptions>()) });
+
+        public Dictionary<string, string> SubdomainMappings = new Dictionary<string, string>();
+
+        public Dictionary<string, string> HostMappings = new Dictionary<string, string>();
+        internal Func<IServiceProvider, ITenantIdentificationStrategy> TenantIdentificationStrategyDelegate { get; set; } = (sp) => sp.GetService<ITenantIdentificationStrategy>() ?? new CompositeTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), new ITenantIdentificationStrategy[] {
+            new DefaultQueryStringTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultQueryStringTenantIdentificationStrategy>>(), sp.GetRequiredService<AutofacMultitenantOptions>()),
+            new DefaultHostTenantIdentificationStrategy(sp.GetRequiredService<IHttpContextAccessor>(), sp.GetRequiredService<ILogger<DefaultHostTenantIdentificationStrategy>>(), sp.GetRequiredService<AutofacMultitenantOptions>())
+        });
 
         public AutofacMultitenantOptions TenantIdentificationStrategy(Func<IServiceProvider, ITenantIdentificationStrategy> tenantIdentificationStrategyDelegate)
         {
             TenantIdentificationStrategyDelegate = tenantIdentificationStrategyDelegate;
+            return this;
+        }
+
+        internal List<Action<IServiceCollection>> ConfigureServicesList = new List<Action<IServiceCollection>>();
+
+        public AutofacMultitenantOptions ConfigureServices(Action<IServiceCollection> configureServicesDelegate)
+        {
+            ConfigureServicesList.Add(configureServicesDelegate);
             return this;
         }
 
@@ -258,6 +296,47 @@ namespace Autofac.AspNetCore.Extensions
             return this;
         }
 
+        public AutofacMultitenantOptions MapDefaultTenantToHost(params string[] hosts)
+        {
+            foreach (var host in hosts)
+            {
+                HostMappings.Add(host, null);
+            }
+            return this;
+        }
+
+        public AutofacMultitenantOptions MapDefaultTenantToAllRootDomains()
+        {
+            HostMappings.Add("", null);
+            return this;
+        }
+
+        public AutofacMultitenantOptions MapDefaultTenantToSubDomain(params string[] subdomains)
+        {
+            foreach (var subdomain in subdomains)
+            {
+                HostMappings.Add($"{subdomain}.*", null);
+            }
+            return this;
+        }
+
+        public AutofacMultitenantOptions MapTenantToSubDomain(string tenantId, params string[] subdomains)
+        {
+            foreach (var subdomain in subdomains)
+            {
+                HostMappings.Add($"{subdomain}.*", tenantId);
+            }
+            return this;
+        }
+        public AutofacMultitenantOptions MapTenantToHost(string tenantId, params string[] hosts)
+        {
+            foreach (var host in hosts)
+            {
+                HostMappings.Add(host, tenantId);
+            }
+            return this;
+        }
+
         internal Func<IContainer, ITenantIdentificationStrategy, MultitenantContainer> CreateMultiTenantContainerDelegate { get; set; } = (container, strategy) =>
         {
             return new MultitenantContainer(strategy, container);
@@ -268,11 +347,18 @@ namespace Autofac.AspNetCore.Extensions
             CreateMultiTenantContainerDelegate = createMultiTenantContainerDelegate;
             return this;
         }
-        public Dictionary<string, Action<TenantBuilder>> Tenants { get; set; } = new Dictionary<string, Action<TenantBuilder>>() { { "", null } };
+        public Dictionary<string, Action<TenantBuilder>> Tenants { get; set; } = new Dictionary<string, Action<TenantBuilder>>();
 
         public AutofacMultitenantOptions AddTenant(string tenantId)
         {
-            Tenants.Add(tenantId, null);
+            AddTenant(tenantId, null);
+            return this;
+        }
+
+        public AutofacMultitenantOptions AddTenant(string tenantId, Action<TenantBuilder> builder)
+        {
+            Tenants.Add(tenantId, builder);
+            //HostMappings.Add($"{tenantId}.*", tenantId);
             return this;
         }
 
@@ -280,7 +366,7 @@ namespace Autofac.AspNetCore.Extensions
         {
             foreach (var tenantId in tenantIds)
             {
-                Tenants.Add(tenantId, builder);
+                AddTenant(tenantId, builder);
             }
             return this;
         }
@@ -289,15 +375,10 @@ namespace Autofac.AspNetCore.Extensions
         {
             foreach (var tenantId in tenantIds)
             {
-                Tenants.Add(tenantId, null);
+                AddTenant(tenantId, null);
             }
 
             return this;
-        }
-
-        public AutofacMultitenantOptions RemoveDefaultTenant()
-        {
-            return RemoveTenants(string.Empty);
         }
 
         public AutofacMultitenantOptions AddTenantsFromConfig(IConfiguration config)
@@ -309,7 +390,7 @@ namespace Autofac.AspNetCore.Extensions
         {
             foreach (var tenantId in tenantIds)
             {
-                Tenants.Add(tenantId, null);
+                AddTenant(tenantId, null);
             }
             return this;
         }
@@ -325,7 +406,7 @@ namespace Autofac.AspNetCore.Extensions
 
         public AutofacMultitenantOptions AddTenants(string tenantId, Action<TenantBuilder> builder)
         {
-            Tenants.Add(tenantId, builder);
+            AddTenant(tenantId, builder);
             return this;
         }
 
@@ -334,7 +415,10 @@ namespace Autofac.AspNetCore.Extensions
             //https://www.finbuckle.com/MultiTenant/Docs/Authentication
             builder.ConfigureServices((context, services) =>
             {
-                services.AddTransient<IConfigureOptions<RazorPagesOptions>, RazorPagesOptionsSetup>();
+                var tenant = new Tenant(context.TenantId, context.Configuration);
+                services.AddSingleton<ITenant>(tenant);
+
+                services.AddTransient<IPostConfigureOptions<RazorPagesOptions>, RazorPagesOptionsSetup>();
             });
         }};
 
@@ -347,6 +431,42 @@ namespace Autofac.AspNetCore.Extensions
 
     public class TenantBuilder
     {
+        public object TenantId { get; }
+        public TenantBuilder(object tenantId)
+        {
+            TenantId = tenantId;
+        }
+
+        public HashSet<string> HostNames = new HashSet<string>();
+
+        public TenantBuilder MapToTenantIdSubDomain()
+        {
+            return MapToSubDomain(TenantId.ToString());
+        }
+
+        public TenantBuilder MapToSubDomain(params string[] subdomains)
+        {
+            foreach (var subdomain in subdomains)
+            {
+                HostNames.Add($"{subdomain}.*");
+            }
+            return this;
+        }
+
+        public TenantBuilder MapToAllRootDomains()
+        {
+            HostNames.Add("");
+            return this;
+        }
+
+        public TenantBuilder MapToHost(params string[] hosts)
+        {
+            foreach (var host in hosts)
+            {
+                HostNames.Add(host);
+            }
+            return this;
+        }
 
         internal Action<TenantBuilderContext, IConfigurationBuilder> ConfigureAppConfigurationDelegate { get; set; } = (context, builder) => { };
 
@@ -373,8 +493,6 @@ namespace Autofac.AspNetCore.Extensions
 
 
         internal Func<IServiceProvider, CancellationToken, Task> InitializeAsyncDelegate { get; set; } = (sp, cancellationToken) => Task.CompletedTask;
-
-        public object TenantId { get; }
 
         public TenantBuilder InitializeAsync(Func<IServiceProvider, CancellationToken, Task> initializeAsyncDelegate)
         {

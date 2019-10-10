@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace Autofac.AspNetCore.Extensions
 {
-    public class RazorPagesOptionsSetup : IConfigureOptions<RazorPagesOptions>
+    public class RazorPagesOptionsSetup : IPostConfigureOptions<RazorPagesOptions>
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -21,7 +21,7 @@ namespace Autofac.AspNetCore.Extensions
 
         private static FieldInfo MvcOptions = typeof(PageConventionCollection).GetField("_mvcOptions", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        public void Configure(RazorPagesOptions options)
+        public void PostConfigure(string name, RazorPagesOptions options)
         {
             if (options == null)
             {

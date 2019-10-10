@@ -1,4 +1,5 @@
 ﻿using Autofac.AspNetCore.Extensions.Antiforgery;
+using Autofac.AspNetCore.Extensions.Data;
 using Autofac.AspNetCore.Extensions.Middleware;
 using Autofac.AspNetCore.Extensions.OptionsCache;
 using Autofac.AspNetCore.Extensions.Security;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -63,8 +65,16 @@ namespace Autofac.AspNetCore.Extensions
 
             return builder.ConfigureServices((context, services) => {
 
+                var tenant = new Tenant(string.Empty, context.Configuration);
+                services.AddSingleton<ITenant>(tenant);
+
+                services.AddTransient<ITenantService, MultiTenantService>();
+                services.AddTransient<ITenantDbContextStrategyService, MultiTenantDbContextStrategyService>();
+
                 if (configure == null)
                     configure = (c, options) => { };
+
+                services.AddTenantViewLocations();
 
                 services.AddAutofacMultitenant(options => configure(context, options));
                 services.AddTenantConfiguration();
