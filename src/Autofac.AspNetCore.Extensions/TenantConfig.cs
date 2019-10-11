@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Primitives;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Autofac.AspNetCore.Extensions
 {
@@ -11,27 +8,18 @@ namespace Autofac.AspNetCore.Extensions
     {
         public static IConfiguration BuildTenantAppConfiguration(IConfiguration configRoot, IHostingEnvironment environment, string tenantId, Action<TenantBuilderContext, IConfigurationBuilder> configureAppConfiguration = null)
         {
-            var tenantConfigBuilder = new ConfigurationBuilder();
-
-            var appSettingsFileName = $"appsettings.{tenantId}.json";
-            var appSettingsEnvironmentFilename = $"appsettings.{tenantId}.{environment.EnvironmentName}.json";
-
-            tenantConfigBuilder
+            var tenantConfigBuilder = new ConfigurationBuilder()
             .SetBasePath(environment.ContentRootPath)
-            .AddJsonFile(appSettingsFileName, optional: true, reloadOnChange: true)
-            .AddJsonFile(appSettingsEnvironmentFilename, optional: true, reloadOnChange: true);
+            .AddJsonFile($"appsettings.{tenantId}.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{tenantId}.{environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
             var tenantConfig = tenantConfigBuilder.Build() as ConfigurationRoot;
-            var tenantConfigProviders = tenantConfig.Providers as List<IConfigurationProvider>;
 
             //Final tenant config
             var finalTenantConfigBuilder = new ConfigurationBuilder();
+            finalTenantConfigBuilder.AddConfiguration(configRoot);
+            finalTenantConfigBuilder.AddConfiguration(tenantConfig);
             var finalTenantConfig = finalTenantConfigBuilder.Build() as ConfigurationRoot;
-
-            var finalTenantConfigProviders = finalTenantConfig.Providers as List<IConfigurationProvider>;
-
-            finalTenantConfigProviders.AddRange((configRoot as ConfigurationRoot).Providers);
-            finalTenantConfigProviders.AddRange(tenantConfigProviders);
 
             if(configureAppConfiguration != null)
             {
@@ -43,27 +31,19 @@ namespace Autofac.AspNetCore.Extensions
 
                 configureAppConfiguration(context, tenantConfigBuilder);
 
+                tenantConfig.Dispose();
+                finalTenantConfig.Dispose();
+
                 tenantConfig = tenantConfigBuilder.Build() as ConfigurationRoot;
-                tenantConfigProviders = tenantConfig.Providers as List<IConfigurationProvider>;
 
                 //Final tenant config
                 finalTenantConfigBuilder = new ConfigurationBuilder();
+                finalTenantConfigBuilder.AddConfiguration(configRoot);
+                finalTenantConfigBuilder.AddConfiguration(tenantConfig);
                 finalTenantConfig = finalTenantConfigBuilder.Build() as ConfigurationRoot;
-
-                finalTenantConfigProviders = finalTenantConfig.Providers as List<IConfigurationProvider>;
-
-                finalTenantConfigProviders.AddRange((configRoot as ConfigurationRoot).Providers);
-
-                if (tenantConfigProviders.Count() > 0)
-                {
-                    finalTenantConfigProviders.AddRange(tenantConfigProviders);
-                }
             }
 
-            //Need to add providers via constructor for change tracking
-            var returnConfig = new ConfigurationRoot(finalTenantConfigProviders);
-
-            return returnConfig;
+            return finalTenantConfig;
         }
     }
 }
