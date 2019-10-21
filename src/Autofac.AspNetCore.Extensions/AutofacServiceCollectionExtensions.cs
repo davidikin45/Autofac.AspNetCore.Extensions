@@ -41,6 +41,11 @@ namespace Autofac.AspNetCore.Extensions
 
             public ContainerBuilder CreateBuilder(IServiceCollection services)
             {
+                if(_options.ValidateOnBuild)
+                {
+                    services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true });
+                }
+
                 var containerBuilder = new ContainerBuilder();
 
                 containerBuilder.Populate(services);
@@ -98,6 +103,11 @@ namespace Autofac.AspNetCore.Extensions
 
             public ContainerBuilder CreateBuilder(IServiceCollection services)
             {
+                if (_options.ValidateOnBuild)
+                {
+                    services.BuildServiceProvider(new ServiceProviderOptions() { ValidateOnBuild = true });
+                }
+
                 var containerBuilder = new ContainerBuilder();
 
                 containerBuilder.Populate(services);
@@ -245,6 +255,7 @@ namespace Autofac.AspNetCore.Extensions
 
     public class AutofacOptions
     {
+        public bool ValidateOnBuild { get; set; } = false;
         internal Action<ContainerBuilder> ConfigureContainerDelegate { get; set; } = (builder => { });
 
         public AutofacOptions ConfigureContainer(Action<ContainerBuilder> configureContainerDelegate)
@@ -255,6 +266,7 @@ namespace Autofac.AspNetCore.Extensions
     }
     public class AutofacMultitenantOptions
     {
+        public bool ValidateOnBuild { get; set; } = false;
         public bool AllowDefaultTenantRequests { get; set; } = true;
         public bool AutoAddITenantConfigurationTenants { get; set; } = true;
 
