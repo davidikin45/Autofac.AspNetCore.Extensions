@@ -1,5 +1,6 @@
 ﻿using Autofac.Extensions.DependencyInjection;
 using Autofac.Multitenant;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -16,10 +17,10 @@ namespace Autofac.AspNetCore.Extensions
         private readonly AutofacMultitenantOptions _options;
         private readonly IEnumerable<ITenantConfiguration> _tenantConfigurations;
 
-        public MultitenantInitializationExecutor(ILogger<MultitenantInitializationExecutor> logger, MultitenantContainer mtc, AutofacMultitenantOptions options, IEnumerable<ITenantConfiguration> tenantConfigurations)
+        public MultitenantInitializationExecutor(ILogger<MultitenantInitializationExecutor> logger, IServiceProvider serviceProvider, AutofacMultitenantOptions options, IEnumerable<ITenantConfiguration> tenantConfigurations)
         {
             _logger = logger;
-            _mtc = mtc;
+            _mtc = serviceProvider.GetRequiredService<MultitenantContainer>();
             _options = options;
             _tenantConfigurations = tenantConfigurations;
         }
