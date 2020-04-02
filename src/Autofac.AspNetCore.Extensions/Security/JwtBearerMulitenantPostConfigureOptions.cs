@@ -7,11 +7,11 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace Autofac.AspNetCore.Extensions.Security
 {
-    public class JwtBearerMulitenantPostConfigureOptions : IPostConfigureOptions<JwtBearerOptions>
+    public class JwtBearerMultitenantPostConfigureOptions : IPostConfigureOptions<JwtBearerOptions>
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public JwtBearerMulitenantPostConfigureOptions(IHttpContextAccessor httpContextAccessor)
+        public JwtBearerMultitenantPostConfigureOptions(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }
@@ -29,7 +29,9 @@ namespace Autofac.AspNetCore.Extensions.Security
 
                 keys = new List<SecurityKey>();
 
-                if (!string.IsNullOrEmpty(kid) && kid.Split('.')[0] == tenantId)
+                var kidParts = kid.Split('.');
+
+                if (!string.IsNullOrEmpty(kid) && ((kidParts.Length > 1 && kidParts[0] == tenantId) || kidParts[0].StartsWith(tenantId)))
                 {
                     var key = new JwtSecurityTokenHandlerInner().ResolveIssuerSigningKey(token, securityToken as JwtSecurityToken, validationParameters);
                     if (key != null)

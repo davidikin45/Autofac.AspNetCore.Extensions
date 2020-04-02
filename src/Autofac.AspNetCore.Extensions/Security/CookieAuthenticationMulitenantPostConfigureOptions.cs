@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Autofac.AspNetCore.Extensions.Security
 {
-    public class CookieAuthenticationMulitenantPostConfigureOptions : IPostConfigureOptions<CookieAuthenticationOptions>
+    public class CookieAuthenticationMultitenantPostConfigureOptions : IPostConfigureOptions<CookieAuthenticationOptions>
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         public CookieAuthenticationMulitenantPostConfigureOptions(IHttpContextAccessor httpContextAccessor)

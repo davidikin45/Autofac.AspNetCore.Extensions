@@ -101,7 +101,7 @@ namespace Autofac.AspNetCore.Extensions
                 //AuthenticationHandlerProvider
                 //JwtBearerHandler - Transient
                 //IOptionsMonitor<T>
-                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerMulitenantPostConfigureOptions>());
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerMultitenantPostConfigureOptions>());
 
                 //AuthenticationHandlerProvider
                 //CookieAuthenticationHandler - Transient
