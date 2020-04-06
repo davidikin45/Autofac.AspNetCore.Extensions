@@ -25,11 +25,11 @@ namespace Autofac.AspNetCore.Extensions.Data.Helpers
             foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(x => typeof(IEntityTenantSchema).IsAssignableFrom(x.ClrType) || (selectGenericInterface && typeof(IEntityTenant).IsAssignableFrom(x.ClrType))))
             {
 
-#if NETCOREAPP3_0
+
                 entityType.SetSchema(tenantId);
-#else
-                entityType.Relational().Schema = tenantId;
-#endif
+
+                //.NET Core 2.2
+                //entityType.Relational().Schema = tenantId;
             }
         }
 

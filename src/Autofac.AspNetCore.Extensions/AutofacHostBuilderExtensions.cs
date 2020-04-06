@@ -24,7 +24,7 @@ namespace Autofac.AspNetCore.Extensions
 {
     public static class AutofacWHostBuilderExtensions
     {
-#if NETCOREAPP3_0
+
         public static IHostBuilder UseAutofac(this IHostBuilder builder) => builder.UseAutofac((options) => { });
 
         /// <summary>
@@ -160,6 +160,5 @@ namespace Autofac.AspNetCore.Extensions
                 services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<SessionOptions>, SessionPostConfigureOptions>());
             });
         }
-#endif
     }
 }

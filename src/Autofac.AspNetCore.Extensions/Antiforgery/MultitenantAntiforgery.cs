@@ -1,7 +1,4 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
-#if !NETCOREAPP3_0
-using Microsoft.AspNetCore.Antiforgery.Internal;
-#endif
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,11 +14,12 @@ namespace Autofac.AspNetCore.Extensions.Antiforgery
         public MultitenantAntiforgery(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-#if NETCOREAPP3_0
+
             _type = typeof(IAntiforgery).Assembly.GetType("Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery");
-#else
-            _type = typeof(DefaultAntiforgery);
-#endif
+
+            //.NET Core 2.2
+            //_type = typeof(DefaultAntiforgery);
+
         }
 
         private object GetTokenStore(HttpContext httpContext)
@@ -30,13 +28,14 @@ namespace Autofac.AspNetCore.Extensions.Antiforgery
                 return httpContext.Items["_multitenantTokenStore"];
 
             var options = httpContext.RequestServices.GetRequiredService<IOptions<AntiforgeryOptions>>();
-#if NETCOREAPP3_0
+
             var type = typeof(AntiforgeryOptions).Assembly.GetType("Microsoft.AspNetCore.Antiforgery.DefaultAntiforgeryTokenStore");
             var interfaceType = typeof(AntiforgeryOptions).Assembly.GetType("Microsoft.AspNetCore.Antiforgery.IAntiforgeryTokenStore");
             var tokenStore = ActivatorUtilities.CreateInstance(_serviceProvider, type, options);
-#else
-            var tokenStore = new DefaultAntiforgeryTokenStore(options) as IAntiforgeryTokenStore;
-#endif
+
+            //.NET Core 2.2
+            //var tokenStore = new DefaultAntiforgeryTokenStore(options) as IAntiforgeryTokenStore;
+
             httpContext.Items["_multitenantTokenStore"] = tokenStore;
 
             return tokenStore;

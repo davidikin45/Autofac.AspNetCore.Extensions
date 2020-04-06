@@ -1,8 +1,4 @@
-﻿#if !NETCOREAPP3_0
-using Microsoft.AspNetCore.Hosting.Internal;
-#endif
-
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using System;
