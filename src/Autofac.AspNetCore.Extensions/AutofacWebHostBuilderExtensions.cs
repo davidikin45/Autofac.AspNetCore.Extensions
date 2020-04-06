@@ -106,7 +106,7 @@ namespace Autofac.AspNetCore.Extensions
                 //AuthenticationHandlerProvider
                 //CookieAuthenticationHandler - Transient
                 //IOptionsMonitor<T>
-                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieAuthenticationOptions>, CookieAuthenticationMulitenantPostConfigureOptions>());
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieAuthenticationOptions>, CookieAuthenticationMultitenantPostConfigureOptions>());
 
                 //Antitforgery
                 //IHtmlGenerator - Singleton

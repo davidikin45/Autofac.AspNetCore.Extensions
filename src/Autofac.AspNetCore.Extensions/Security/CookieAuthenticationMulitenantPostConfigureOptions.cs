@@ -11,7 +11,7 @@ namespace Autofac.AspNetCore.Extensions.Security
     public class CookieAuthenticationMultitenantPostConfigureOptions : IPostConfigureOptions<CookieAuthenticationOptions>
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public CookieAuthenticationMulitenantPostConfigureOptions(IHttpContextAccessor httpContextAccessor)
+        public CookieAuthenticationMultitenantPostConfigureOptions(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }
@@ -45,13 +45,15 @@ namespace Autofac.AspNetCore.Extensions.Security
 
         private static Func<CookieValidatePrincipalContext, Task> OnValidatePrincipal(Func<CookieValidatePrincipalContext, Task> func)
         {
-            return async (context) =>
+            return (context) =>
             {
                 ClaimsIdentity identity = (ClaimsIdentity)context.Principal.Identity;
                 if (identity.FindFirst("CookieName").Value != context.Options.Cookie.Name)
                 {
                     context.RejectPrincipal();
                 }
+
+                return Task.CompletedTask;
             };
         }
     }

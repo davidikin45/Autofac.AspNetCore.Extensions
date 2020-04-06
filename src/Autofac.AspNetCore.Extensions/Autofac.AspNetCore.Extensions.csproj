@@ -11,14 +11,14 @@
     <RepositoryUrl>https://github.com/davidikin45/Autofac.AspNetCore.Extensions</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Autofac AspNetCore</PackageTags>
-    <Version>2.0.8</Version>
-    <AssemblyVersion>2.0.8.0</AssemblyVersion>
+    <Version>2.0.9</Version>
+    <AssemblyVersion>2.0.9.0</AssemblyVersion>
     <FileVersion>2.0.8.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac.AspNetCore.Multitenant" Version="2.0.0" />
-    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="5.0.0" />
+    <PackageReference Include="Autofac.AspNetCore.Multitenant" Version="3.0.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="6.0.0" />
     <PackageReference Include="EntityFrameworkCore.Initialization" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.0.0" />
