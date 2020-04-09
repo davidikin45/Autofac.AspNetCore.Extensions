@@ -323,6 +323,12 @@ namespace Autofac.AspNetCore.Extensions
             return this;
         }
 
+        public AutofacMultitenantOptions MapDefaultTenantToAllRootAndSubDomains()
+        {
+            HostMappings.Add("*", null);
+            return this;
+        }
+
         public AutofacMultitenantOptions MapDefaultTenantToSubDomain(params string[] subdomains)
         {
             foreach (var subdomain in subdomains)
