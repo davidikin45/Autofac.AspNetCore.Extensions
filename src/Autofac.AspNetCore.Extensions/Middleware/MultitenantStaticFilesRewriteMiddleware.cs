@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -12,13 +13,13 @@ namespace Autofac.AspNetCore.Extensions.Middleware
     public class MultitenantStaticFilesRewriteMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly IHostingEnvironment _environment;
+        private readonly IWebHostEnvironment _environment;
         private readonly ILogger _logger;
 
         public MultitenantStaticFilesRewriteMiddleware(
             RequestDelegate next,
             ILoggerFactory loggerFactory,
-            IHostingEnvironment environment
+            IWebHostEnvironment environment
             )
         {
             _next = next;

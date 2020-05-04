@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -152,7 +153,7 @@ namespace Autofac.AspNetCore.Extensions
             {
                 var serviceProvider = new AutofacServiceProvider(mtc);
 
-                var hostingEnvironment = serviceProvider.GetRequiredService<Microsoft.AspNetCore.Hosting.IHostingEnvironment>();
+                var hostingEnvironment = serviceProvider.GetRequiredService<IHostEnvironment>();
                 var config = serviceProvider.GetRequiredService<IConfiguration>();
                 var tenantConfigurations = serviceProvider.GetServices<ITenantConfiguration>();
 

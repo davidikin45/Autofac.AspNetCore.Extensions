@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System;
 
 namespace Autofac.AspNetCore.Extensions
 {
     public static class TenantConfig
     {
-        public static IConfiguration BuildTenantAppConfiguration(IConfiguration configRoot, IHostingEnvironment environment, string tenantId, Action<TenantBuilderContext, IConfigurationBuilder> configureAppConfiguration = null)
+        public static IConfiguration BuildTenantAppConfiguration(IConfiguration configRoot, IHostEnvironment environment, string tenantId, Action<TenantBuilderContext, IConfigurationBuilder> configureAppConfiguration = null)
         {
             var tenantConfigBuilder = new ConfigurationBuilder()
             .SetBasePath(environment.ContentRootPath)

@@ -10,7 +10,6 @@ namespace Autofac.AspNetCore.Extensions.OptionsCache
 {
     public class MultitenantOptionsFactory<TOptions> : IOptionsFactory<TOptions> where TOptions : class, new()
     {
-        private readonly string _tenantId;
         private readonly IConfiguration _config;
         private readonly IEnumerable<IConfigureOptions<TOptions>> _setups;
         private readonly IEnumerable<IPostConfigureOptions<TOptions>> _postConfigures;
