@@ -161,7 +161,7 @@ namespace Autofac.AspNetCore.Extensions
                 {
                     foreach (var tenantId in tenantConfigurations.Select(i => i.TenantId.ToString()))
                     {
-                        if (_options.Tenants.ContainsKey(tenantId))
+                        if (!_options.Tenants.ContainsKey(tenantId))
                         {
                             _options.Tenants.Add(tenantId, null);
                         }
