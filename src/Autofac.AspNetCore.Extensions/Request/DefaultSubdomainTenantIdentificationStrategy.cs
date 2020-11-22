@@ -56,7 +56,7 @@ namespace Autofac.AspNetCore.Extensions
                 return true;
             }
 
-            this._logger.LogWarning("Unable to identify tenant from host subdomain.");
+            this._logger.LogDebug("Unable to identify tenant from host subdomain.");
             tenantId = null;
 
             context.Items["_tenantId"] = null;

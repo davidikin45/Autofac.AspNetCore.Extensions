@@ -58,7 +58,7 @@ namespace Autofac.AspNetCore.Extensions
                 return true;
             }
 
-            this._logger.LogWarning("Unable to identify tenant from query string.");
+            this._logger.LogDebug("Unable to identify tenant from query string.");
             tenantId = null;
             context.Items["_tenantId"] = null;
             return false;
